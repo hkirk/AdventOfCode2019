@@ -1,20 +1,74 @@
 package Day2
 
-class IntCode(input: String) {
-  private val buffer = input.split(",").map(s => s.toInt).toBuffer
+class IntCode(code: String, input: Int = 0) {
+  private val buffer = code.split(",").map(s => s.toInt).toBuffer
 
-  var i = 0;
+  var i = 0
   while (buffer(i) != 99) {
     buffer(i) match {
-      case 1 =>
-        buffer(buffer(i+3)) = buffer(buffer(i+1)) + buffer(buffer(i+2))
-        i = i+4
-      case 2 =>
-        buffer(buffer(i+3)) = buffer(buffer(i+1)) * buffer(buffer(i+2))
-        i = i+4
-      case 99 =>
+      case 1 | 2 | 3 | 4 | 99 =>
+        handleCommand(buffer(i), positionMode, positionMode, positionMode)
+
+      case complex =>
+        val str = complex.toString
+        parameterMode("0" * (5-str.length) + str)
+
     }
+    print(i)
   }
+
+  private def parameterMode(value: String): Unit = {
+    val A = value.charAt(0)
+    val B = value.charAt(1)
+    val C = value.charAt(2)
+    val opCode = value.slice(3, 5).toInt
+
+    handleCommand(opCode,
+      if(C == '1') immediateMode else positionMode,
+      if(B == '1') immediateMode else positionMode,
+      if(A == '1') immediateMode else positionMode)
+  }
+
+  private def handleCommand(opcode: Int,
+                            f1: Int => Int,
+                            f2: Int => Int,
+                            f3: Int => Int): Unit = opcode match {
+    case 1 =>
+      handleAdd(f1, f2)
+    case 2 =>
+      handleMultiply(f1, f2)
+    case 3 =>
+      handleInput()
+    case 4 =>
+      handleOutput(f1)
+    case 99 =>
+
+  }
+
+  private def handleAdd(f1: Int => Int, f2: Int => Int): Unit = {
+    def add(a: Int, b: Int): Int = a+b
+    buffer(buffer(i+3)) = add(f1(i+1), f2(i+2))
+    i += 4
+  }
+
+  private def handleMultiply(f1: Int => Int, f2: Int => Int): Unit = {
+    def multiply(a: Int, b: Int): Int = a*b
+    buffer(buffer(i+3)) = multiply(f1(i+1), f2(i+2))
+    i += 4
+  }
+
+  private def handleInput(): Unit = {
+    buffer(buffer(i+1)) = input
+    i += 2
+  }
+
+  private def handleOutput(f1: Int => Int): Unit = {
+    println("Output at position: " + buffer(i) + ", is: " + f1(i+1))
+    i += 2
+  }
+
+  private def positionMode(index: Int): Int = buffer(buffer(index))
+  private def immediateMode(index: Int): Int = buffer(index)
 
   def head(): Int = buffer.head
 
@@ -41,7 +95,7 @@ object IntCode {
     } yield (i, j)
 
     val result = pairs.find(v => {
-        calculateResult(v._1, v._2);
+        calculateResult(v._1, v._2)
     })
     100 * result.get._1 + result.get._2
 
