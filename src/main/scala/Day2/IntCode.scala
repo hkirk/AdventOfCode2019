@@ -6,7 +6,7 @@ class IntCode(code: String, input: Int = 0) {
   var i = 0
   while (buffer(i) != 99) {
     buffer(i) match {
-      case 1 | 2 | 3 | 4 | 99 =>
+      case 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 99 =>
         handleCommand(buffer(i), positionMode, positionMode, positionMode)
 
       case complex =>
@@ -14,8 +14,8 @@ class IntCode(code: String, input: Int = 0) {
         parameterMode("0" * (5-str.length) + str)
 
     }
-    print(i)
   }
+  println("sdaf")
 
   private def parameterMode(value: String): Unit = {
     val A = value.charAt(0)
@@ -41,6 +41,11 @@ class IntCode(code: String, input: Int = 0) {
       handleInput()
     case 4 =>
       handleOutput(f1)
+    case 5 => handleJump(i => i != 0, f1, f2)
+    case 6 => handleJump(i => i == 0, f1, f2)
+    case 7 => handleComparison((a, b) => a < b, f1, f2)
+    case 8 => handleComparison((a, b) => a == b, f1, f2)
+
     case 99 =>
 
   }
@@ -63,8 +68,18 @@ class IntCode(code: String, input: Int = 0) {
   }
 
   private def handleOutput(f1: Int => Int): Unit = {
-    println("Output at position: " + buffer(i) + ", is: " + f1(i+1))
+    println("Output at position: " + (i+1) + ", is: " + f1(i+1))
     i += 2
+  }
+
+  private def handleJump(f: Int => Boolean, f1: Int => Int, f2: Int => Int): Unit = {
+    if (f(f1(i+1))) i = f2(i+2)
+    else i += 3
+  }
+
+  private def handleComparison(f: (Int, Int) => Boolean, f1: Int => Int, f2: Int => Int): Unit = {
+    buffer(buffer(i+3)) = if (f(f1(i+1), f2(i+2))) 1 else 0
+    i += 4
   }
 
   private def positionMode(index: Int): Int = buffer(buffer(index))
