@@ -1,21 +1,34 @@
 package Day2
 
-class IntCode(code: String, input: Int = 0) {
+import scala.collection.mutable
+
+class IntCode(code: String, inputs: Int*) {
+  private val inputBuffer = inputs.toBuffer
   private val buffer = code.split(",").map(s => s.toInt).toBuffer
+  private var i = 0
+  private val outputBuffer = mutable.Buffer[Int]();
 
-  var i = 0
-  while (buffer(i) != 99) {
-    buffer(i) match {
-      case 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 99 =>
-        handleCommand(buffer(i), positionMode, positionMode, positionMode)
+  private var state: State = Stopped
+  def isDone(): Boolean = state == Stopped
 
-      case complex =>
-        val str = complex.toString
-        parameterMode("0" * (5-str.length) + str)
+  def run(): Int = {
+    state = Running
+    while (state != Running && buffer(i) != 99) {
+      buffer(i) match {
+        case 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 99 =>
+          handleCommand(buffer(i), positionMode, positionMode, positionMode)
 
+        case complex =>
+          val str = complex.toString
+          parameterMode("0" * (5-str.length) + str)
+
+      }
     }
+    if (outputBuffer.nonEmpty) outputBuffer.head
+    else 0
   }
-  println("sdaf")
+
+  def addInputs(inputs: Int*): Unit = inputBuffer.addAll(inputs)
 
   private def parameterMode(value: String): Unit = {
     val A = value.charAt(0)
@@ -47,6 +60,7 @@ class IntCode(code: String, input: Int = 0) {
     case 8 => handleComparison((a, b) => a == b, f1, f2)
 
     case 99 =>
+      state = Stopped
 
   }
 
@@ -63,12 +77,17 @@ class IntCode(code: String, input: Int = 0) {
   }
 
   private def handleInput(): Unit = {
-    buffer(buffer(i+1)) = input
+    if (inputBuffer.isEmpty) {
+      state = Halted
+    }
+    buffer(buffer(i+1)) = inputBuffer.remove(0)
     i += 2
   }
 
   private def handleOutput(f1: Int => Int): Unit = {
-    println("Output at position: " + (i+1) + ", is: " + f1(i+1))
+    val value: Int = f1(i+1)
+    println("Output at position: " + (i+1) + ", is: " + value)
+    outputBuffer.addOne(value)
     i += 2
   }
 
@@ -101,6 +120,7 @@ object IntCode {
 
     def calculateResult(noun: Int, verb: Int): Boolean = {
       val intCode = new IntCode(setInputs(noun, verb))
+      intCode.run()
       intCode.head() == expectedResult
     }
 
